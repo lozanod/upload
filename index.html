@@ -84,16 +84,16 @@
             const urlParams = new URLSearchParams(window.location.search);
             const huntId = urlParams.get('hunt_id');
             const userId = urlParams.get('user_id');
-            const vid = urlParams.get('vid'); // New parameter for video ID
+            // const vid = urlParams.get('vid'); // Commented out vid parameter
 
             console.log("Hunt ID:", huntId);
             console.log("User ID:", userId);
-            console.log("Video ID (vid):", vid);
+            // console.log("Video ID (vid):", vid); // Commented out log for vid
 
             // Ensure the required URL parameters are present
-            if (!huntId || !userId || !vid) {
-                alert("Missing required parameters: 'hunt_id', 'user_id', or 'vid'. Please pass them as query parameters.");
-                console.error("Missing required parameters: 'hunt_id', 'user_id', or 'vid'.");
+            if (!huntId || !userId) { // Removed vid from the condition check
+                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
+                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
                 return;
             }
 
@@ -135,7 +135,7 @@
                 formData.append('filesize', file.size); // File size in bytes
                 formData.append('hunt_id', huntId); // Hunt ID parameter
                 formData.append('user_id', userId); // User ID parameter
-                formData.append('vid', vid); // Video ID parameter
+                // formData.append('vid', vid); // Commented out vid parameter
 
                 try {
                     // Send the FormData to the webhook using Fetch API
