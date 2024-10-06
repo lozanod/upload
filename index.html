@@ -4,26 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Upload to S3</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding: 50px;
-        }
-        input, button {
-            margin: 10px;
-            padding: 10px;
-            font-size: 16px;
-        }
-        #statusMessage {
-            margin-top: 20px;
-            font-size: 18px;
-            color: green;
-        }
-        #errorMessage {
-            color: red;
-        }
-    </style>
 </head>
 <body>
     <h2>Upload File to S3</h2>
@@ -31,47 +11,57 @@
     <br /><br />
     <button id="uploadButton">Upload File</button>
     <p id="statusMessage"></p>
-    <p id="errorMessage"></p>
 
     <script>
         // Capture the pre-signed URL from the query parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const presignedUrl = urlParams.get('presignedUrl');
+        let presignedUrl = urlParams.get('presignedUrl');
 
         const fileInput = document.getElementById('fileInput');
         const uploadButton = document.getElementById('uploadButton');
         const statusMessage = document.getElementById('statusMessage');
-        const errorMessage = document.getElementById('errorMessage');
 
         // Function to upload file to S3 using the pre-signed URL
         async function uploadFileToS3(file, presignedUrl) {
+            // Make sure the URL has all the required query parameters
             console.log("Starting file upload...");
             console.log("Presigned URL:", presignedUrl);
             console.log("File Type:", file.type);
 
             try {
-                const response = await fetch(presignedUrl, {
+                // Decode and validate the URL
+                const url = new URL(decodeURIComponent(presignedUrl));
+
+                // Check if all required parameters are present in the URL
+                const requiredParams = ['X-Amz-Algorithm', 'X-Amz-Credential', 'X-Amz-Signature', 'X-Amz-Date', 'X-Amz-SignedHeaders', 'X-Amz-Expires'];
+                for (const param of requiredParams) {
+                    if (!url.searchParams.has(param)) {
+                        throw new Error(`Missing required parameter: ${param}`);
+                    }
+                }
+
+                // Perform the file upload using the fetch API
+                const response = await fetch(url, {
                     method: 'PUT',
                     headers: {
-                        // Include only 'Content-Type' in headers to avoid conflicts with S3 signed URL parameters
-                        'Content-Type': file.type || 'application/octet-stream'
+                        'Content-Type': file.type || 'application/octet-stream',
+                        'x-amz-acl': 'public-read',
+                        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD' // Include if using unsigned payload
                     },
                     body: file
                 });
 
+                // Check the response
                 if (response.ok) {
-                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
-                    errorMessage.textContent = '';
-                    console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
+                    statusMessage.textContent = `File uploaded successfully! File URL: ${url.origin}${url.pathname}`;
+                    console.log("Upload successful. File URL:", `${url.origin}${url.pathname}`);
                 } else {
                     const errorText = await response.text();
-                    statusMessage.textContent = '';
-                    errorMessage.textContent = `Upload failed. Status: ${response.status}. Error: ${errorText}`;
+                    statusMessage.textContent = `Upload failed. Status: ${response.status}. Error: ${errorText}`;
                     console.error("Upload failed. Status:", response.status, errorText);
                 }
             } catch (error) {
-                statusMessage.textContent = '';
-                errorMessage.textContent = "Upload failed due to an error.";
+                statusMessage.textContent = `Upload failed due to an error: ${error.message}`;
                 console.error("Upload error:", error);
             }
         }
@@ -84,6 +74,7 @@
             }
 
             if (presignedUrl) {
+                // Ensure the presigned URL is properly decoded and used
                 uploadFileToS3(file, presignedUrl);
             } else {
                 console.error("Pre-signed URL is missing. Cannot upload the file.");
