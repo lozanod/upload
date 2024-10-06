@@ -22,7 +22,7 @@
 
         // Check if the pre-signed URL is present
         if (presignedUrl) {
-            console.log("Using presigned URL: " + presignedUrl);
+            console.log("Using presigned URL: " + decodeURIComponent(presignedUrl));
         } else {
             alert("Pre-signed URL is missing. Make sure to pass it correctly.");
         }
@@ -34,8 +34,10 @@
 
         // Function to upload file to S3 using the pre-signed URL
         function uploadFileToS3(file, presignedUrl) {
+            console.log("Starting file upload...");
+
             const xhr = new XMLHttpRequest();
-            xhr.open("PUT", presignedUrl, true);
+            xhr.open("PUT", decodeURIComponent(presignedUrl), true); // Decode the URL in case it is encoded
 
             // Check and log file type
             console.log("File type:", file.type);
@@ -44,10 +46,9 @@
             // Set the Content-Type header based on the file type
             xhr.setRequestHeader("Content-Type", file.type);
 
-            // Optional: Remove the x-amz-acl header to avoid conflicts with pre-signed URL permissions
-            // xhr.setRequestHeader("x-amz-acl", "public-read"); // Uncomment if needed
-
+            // Define onload event
             xhr.onload = function () {
+                console.log("XHR onload called. Status:", xhr.status);
                 if (xhr.status === 200) {
                     statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
                     console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
@@ -57,5 +58,61 @@
                 }
             };
 
+            // Define onerror event
             xhr.onerror = function () {
-                statusMessage.textC
+                statusMessage.textContent = "Upload failed due to an error.";
+                console.error("Upload error. Status:", xhr.status, xhr.responseText);
+            };
+
+            // Define onprogress event to log upload progress
+            xhr.upload.onprogress = function (event) {
+                if (event.lengthComputable) {
+                    const percentCompleted = Math.round((event.loaded / event.total) * 100);
+                    console.log(`Upload progress: ${percentCompleted}%`);
+                }
+            };
+
+            // Log when the request is sent
+            xhr.onloadstart = function () {
+                console.log("XHR request started...");
+                statusMessage.textContent = "Uploading file...";
+            };
+
+            xhr.onloadend = function () {
+                console.log("XHR request ended.");
+            };
+
+            // Send the file to S3
+            try {
+                console.log("Sending file to S3...");
+                xhr.send(file);
+            } catch (error) {
+                console.error("Failed to send the file:", error);
+                statusMessage.textContent = "Upload failed due to an exception.";
+            }
+        }
+
+        // Event listener for the upload button
+        uploadButton.onclick = function () {
+            console.log("Upload button clicked...");
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            // Log the file details
+            console.log("Selected file:", file.name, file.type, file.size);
+
+            // Use the presigned URL from the query parameter for the upload
+            if (presignedUrl) {
+                uploadFileToS3(file, presignedUrl);
+            } else {
+                console.error("Pre-signed URL is missing. Cannot upload the file.");
+                alert("Pre-signed URL is missing. Cannot upload the file.");
+            }
+        };
+    </script>
+</body>
+</html>
