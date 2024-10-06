@@ -56,7 +56,7 @@
 
             // Capture the presigned URL from the query parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params directly
+            let presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params directly
 
             // Check if the presigned URL is present
             if (!presignedUrl) {
@@ -65,8 +65,21 @@
                 return;
             }
 
-            // Log the presigned URL to verify its structure
-            console.log("Using presigned URL:", presignedUrl);
+            // Print the original presigned URL for debugging
+            console.log("Original Presigned URL:", presignedUrl);
+
+            // Decode the URL and log the decoded version
+            presignedUrl = decodeURIComponent(presignedUrl);
+            console.log("Decoded Presigned URL:", presignedUrl);
+
+            // Parse the URL to inspect each query parameter
+            const parsedUrl = new URL(presignedUrl);
+            console.log("Parsed URL:", parsedUrl);
+
+            // Log each query parameter to ensure they're correctly parsed
+            parsedUrl.searchParams.forEach((value, key) => {
+                console.log(`Query Parameter: ${key} = ${value}`);
+            });
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
@@ -87,7 +100,7 @@
                 statusMessage.style.display = 'block';
             }
 
-            // Function to upload file to S3 using the pre-signed URL
+            // Function to upload file to S3 using the presigned URL
             async function uploadFileToS3(file, presignedUrl) {
                 console.log("Starting file upload...");
                 console.log("Presigned URL:", presignedUrl);
