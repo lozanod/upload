@@ -47,10 +47,10 @@
             })
             .then(response => {
                 if (response.ok) {
-                    statusMessage.textContent = File uploaded successfully! File URL: ${presignedUrl.split('?')[0]};
+                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
                     console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                 } else {
-                    statusMessage.textContent = Upload failed. Status: ${response.status};
+                    statusMessage.textContent = `Upload failed. Status: ${response.status}`;
                     console.error("Upload failed. Status:", response.status, response.statusText);
                 }
             })
