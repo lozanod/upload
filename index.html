@@ -40,8 +40,10 @@
             fetch(presignedUrl, {
                 method: 'PUT',
                 headers: {
-                    'Content-Type': file.type || 'application/octet-stream', // Default to 'application/octet-stream' if file type is empty
-                    'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
+                    // Remove Content-Type and x-amz-acl headers for now
+                    // Uncomment these if the presigned URL requires them:
+                    // 'Content-Type': file.type || 'application/octet-stream',
+                    // 'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
                 },
                 body: file,  // File is a Blob or File object
             })
