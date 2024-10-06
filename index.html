@@ -39,7 +39,7 @@
     </style>
 </head>
 <body>
-    <h2>Upload File to Make Webhook</h2>
+    <h2>Video Upload</h2>
     <div class="center">
         <!-- File Input Field -->
         <input type="file" id="fileInput" accept="*/*" />
@@ -108,7 +108,7 @@
                     });
 
                     if (response.ok) {
-                        showMessage(`File and data sent successfully to Make webhook!`, true);
+                        showMessage(`Upload Complete`, true);
                         console.log("File and data sent successfully.");
                     } else {
                         const errorText = await response.text();
