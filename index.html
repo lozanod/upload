@@ -1,65 +1,38 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload to S3</title>
-</head>
-<body>
-    <h2>Upload File to S3</h2>
-    <!-- File Input Field -->
-    <input type="file" id="fileInput" />
-    <br /><br />
-    <!-- Upload Button -->
-    <button id="uploadButton">Upload File</button>
+// Function to upload file using the pre-signed URL
+function uploadFile(file, presignedUrl) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", presignedUrl, true); // Open a PUT request using the pre-signed URL
+    
+    // Set headers for the file upload
+    xhr.setRequestHeader("Content-Type", file.type); // Use the MIME type of the file
+    xhr.setRequestHeader("x-amz-acl", "public-read");
 
-    <p id="statusMessage"></p>
-
-    <script>
-        // JavaScript to handle file upload
-        const fileInput = document.getElementById('fileInput');
-        const uploadButton = document.getElementById('uploadButton');
-        const statusMessage = document.getElementById('statusMessage');
-
-        // Function to upload file to S3 using the pre-signed URL
-        function uploadFileToS3(file, presignedUrl) {
-            const xhr = new XMLHttpRequest();
-            xhr.open("PUT", presignedUrl, true);
-            
-            // Set headers for the upload request
-            xhr.setRequestHeader("Content-Type", file.type);
-            xhr.setRequestHeader("x-amz-acl", "public-read");
-
-            xhr.onload = function () {
-                if (xhr.status === 200) {
-                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
-                } else {
-                    statusMessage.textContent = `Upload failed. Status: ${xhr.status}`;
-                }
-            };
-
-            xhr.onerror = function () {
-                statusMessage.textContent = "Upload failed due to an error.";
-            };
-
-            // Send the file to S3
-            xhr.send(file);
+    // Handle upload response
+    xhr.onload = function () {
+        if (xhr.status === 200) {
+            alert("File uploaded successfully! File URL: " + presignedUrl.split('?')[0]);
+        } else {
+            alert("Upload failed. Status: " + xhr.status);
         }
+    };
 
-        // Event listener for the upload button
-        uploadButton.onclick = function () {
-            const file = fileInput.files[0];
-            if (!file) {
-                alert("Please select a file first.");
-                return;
-            }
+    xhr.onerror = function () {
+        alert("Upload failed due to an error.");
+    };
 
-            // Replace 'YOUR_PRESIGNED_URL' with the actual presigned URL you get from Adalo
-            // You can update this to pass the presigned URL dynamically
-            const presignedUrl = 'YOUR_PRESIGNED_URL'; // e.g., https://bucket-name.s3.amazonaws.com/filename.mp4?... 
+    xhr.send(file); // Send the file to S3 using the pre-signed URL
+}
 
-            uploadFileToS3(file, presignedUrl);
-        };
-    </script>
-</body>
-</html>
+// Add event listener to the upload button
+const uploadButton = document.getElementById('uploadButton');
+uploadButton.onclick = function () {
+    const fileInput = document.getElementById('fileInput');
+    const file = fileInput.files[0];
+
+    if (file && presignedUrl) {
+        uploadFile(file, presignedUrl);
+    } else {
+        alert("No file selected or pre-signed URL is missing.");
+    }
+};
+
