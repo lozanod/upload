@@ -51,35 +51,28 @@
     </div>
 
     <script>
+        // Wait for the DOM content to be fully loaded before executing any code
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture the presigned URL from the query parameters
+            // Capture the pre-signed URL from the query parameters
             const urlParams = new URLSearchParams(window.location.search);
-            let presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params directly
+            let presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
 
-            // Check if the presigned URL is present
+            // Verify that the presigned URL exists
             if (!presignedUrl) {
-                alert("Presigned URL is missing. Please pass it as a query parameter.");
-                console.error("Presigned URL is missing. Please pass it as a query parameter.");
-                return;
+                alert("Pre-signed URL is missing. Please pass it as a query parameter.");
+                console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
+                return; // Exit if the URL is missing
+            } else {
+                // Decode the presigned URL once to ensure it's properly parsed
+                try {
+                    presignedUrl = decodeURIComponent(presignedUrl);
+                    console.log("Decoded presigned URL:", presignedUrl);
+                } catch (error) {
+                    console.error("Error decoding the presigned URL:", error);
+                }
             }
-
-            // Print the original presigned URL for debugging
-            console.log("Original Presigned URL:", presignedUrl);
-
-            // Decode the URL and log the decoded version
-            presignedUrl = decodeURIComponent(presignedUrl);
-            console.log("Decoded Presigned URL:", presignedUrl);
-
-            // Parse the URL to inspect each query parameter
-            const parsedUrl = new URL(presignedUrl);
-            console.log("Parsed URL:", parsedUrl);
-
-            // Log each query parameter to ensure they're correctly parsed
-            parsedUrl.searchParams.forEach((value, key) => {
-                console.log(`Query Parameter: ${key} = ${value}`);
-            });
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
@@ -100,7 +93,7 @@
                 statusMessage.style.display = 'block';
             }
 
-            // Function to upload file to S3 using the presigned URL
+            // Function to upload file to S3 using the pre-signed URL
             async function uploadFileToS3(file, presignedUrl) {
                 console.log("Starting file upload...");
                 console.log("Presigned URL:", presignedUrl);
@@ -109,10 +102,18 @@
                 console.log("File Size:", file.size);
 
                 try {
-                    // Log the full URL to see the exact request being sent
-                    console.log("Request URL:", presignedUrl);
+                    // Check if presigned URL has all the necessary parameters
+                    const url = new URL(presignedUrl);
+                    const requiredParams = ['X-Amz-Algorithm', 'X-Amz-Credential', 'X-Amz-Signature', 'X-Amz-Date', 'X-Amz-SignedHeaders', 'X-Amz-Expires'];
+                    const missingParams = requiredParams.filter(param => !url.searchParams.has(param));
 
-                    // Send the PUT request using Fetch API
+                    if (missingParams.length > 0) {
+                        showMessage(`Missing required query parameters: ${missingParams.join(', ')}`, false);
+                        console.error(`Missing required query parameters: ${missingParams.join(', ')}`);
+                        return;
+                    }
+
+                    // Perform the upload using Fetch API
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
@@ -149,7 +150,12 @@
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
                 // Use the presigned URL from the query parameter for the upload
-                uploadFileToS3(file, presignedUrl);
+                if (presignedUrl) {
+                    uploadFileToS3(file, presignedUrl);
+                } else {
+                    console.error("Pre-signed URL is missing. Cannot upload the file.");
+                    alert("Pre-signed URL is missing. Cannot upload the file.");
+                }
             };
         });
     </script>
