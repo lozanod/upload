@@ -51,39 +51,27 @@
     </div>
 
     <script>
-        // Wait for the DOM content to be fully loaded before executing any code
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture the pre-signed URL from the query parameters
+            // Capture and decode the pre-signed URL from the query parameters
             const urlParams = new URLSearchParams(window.location.search);
-            let presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+            const encodedPresignedUrl = urlParams.get('presignedUrl');
 
-            // Verify that the presigned URL exists
-            if (!presignedUrl) {
+            // If the presigned URL is missing, show an error and return
+            if (!encodedPresignedUrl) {
                 alert("Pre-signed URL is missing. Please pass it as a query parameter.");
                 console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
-                return; // Exit if the URL is missing
-            } else {
-                // Decode the presigned URL once to ensure it's properly parsed
-                try {
-                    presignedUrl = decodeURIComponent(presignedUrl);
-                    console.log("Decoded presigned URL:", presignedUrl);
-                } catch (error) {
-                    console.error("Error decoding the presigned URL:", error);
-                }
+                return;
             }
+
+            // Ensure the URL is decoded correctly
+            const presignedUrl = decodeURIComponent(encodedPresignedUrl);
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
             const statusMessage = document.getElementById('statusMessage');
-
-            // Ensure the elements are found in the DOM
-            if (!fileInput || !uploadButton || !statusMessage) {
-                console.error("Required DOM elements are not found. Please check the HTML structure.");
-                return;
-            }
 
             // Function to show status messages
             function showMessage(message, isSuccess) {
@@ -102,30 +90,22 @@
                 console.log("File Size:", file.size);
 
                 try {
-                    // Check if presigned URL has all the necessary parameters
-                    const url = new URL(presignedUrl);
-                    const requiredParams = ['X-Amz-Algorithm', 'X-Amz-Credential', 'X-Amz-Signature', 'X-Amz-Date', 'X-Amz-SignedHeaders', 'X-Amz-Expires'];
-                    const missingParams = requiredParams.filter(param => !url.searchParams.has(param));
-
-                    if (missingParams.length > 0) {
-                        showMessage(`Missing required query parameters: ${missingParams.join(', ')}`, false);
-                        console.error(`Missing required query parameters: ${missingParams.join(', ')}`);
-                        return;
-                    }
-
-                    // Perform the upload using Fetch API
+                    // Use fetch to send the file
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
+                            // Set the content type and ensure it's not modified
+                            'Content-Type': file.type || 'application/octet-stream'
                         },
                         body: file  // File is a Blob or File object
                     });
 
+                    // Check if the response is ok (status 200)
                     if (response.ok) {
                         showMessage(`File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`, true);
                         console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                     } else {
+                        // If response is not ok, log and show the error
                         const errorText = await response.text();
                         showMessage(`Upload failed. Status: ${response.status}. Error: ${errorText}`, false);
                         console.error("Upload failed. Status:", response.status, errorText);
