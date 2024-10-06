@@ -1,21 +1,87 @@
-const presignedUrl = 'https://chasingtalevideos.s3.us-east-1.amazonaws.com/33?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Content-Sha256=UNSIGNED-PAYLOAD&X-Amz-Credential=ASIA2HNGNHW3W3ZDPBFV%2F20241006%2Fus-east-1%2Fs3%2Faws4_request&X-Amz-Date=20241006T133532Z&X-Amz-Expires=300&X-Amz-Signature=3d75522b21dd4c91d91a45cb5a631f646f7215ee0899fecbbe670db9a57cf7cf&X-Amz-SignedHeaders=host';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload to S3</title>
+</head>
+<body>
+    <h2>Upload File to S3</h2>
+    <!-- File Input Field -->
+    <input type="file" id="fileInput" />
+    <br /><br />
+    <!-- Upload Button -->
+    <button id="uploadButton">Upload File</button>
 
-// Make the PUT request directly to this presigned URL
-fetch(presignedUrl, {
-  method: 'PUT',
-  body: file,  // Replace `file` with your file object
-  headers: {
-    'Content-Type': file.type,
-    'x-amz-acl': 'public-read'  // Only include this if your presigned URL expects it
-  }
-})
-.then(response => {
-  if (response.ok) {
-    console.log('Upload successful!');
-  } else {
-    console.error('Upload failed:', response.statusText);
-  }
-})
-.catch(error => {
-  console.error('Error uploading file:', error);
-});
+    <p id="statusMessage"></p>
+
+    <script>
+        // Get presigned URL from the query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+
+        // Check if the pre-signed URL is present
+        if (presignedUrl) {
+            console.log("Using presigned URL: " + presignedUrl);
+        } else {
+            alert("Pre-signed URL is missing. Make sure to pass it correctly.");
+        }
+
+        // JavaScript to handle file upload
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Function to upload file to S3 using the presigned URL
+        async function uploadFileToS3(file, presignedUrl) {
+            console.log("Starting file upload...");
+
+            // Use Fetch API for the PUT request to S3
+            try {
+                const response = await fetch(presignedUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': file.type || 'application/octet-stream', // Set the correct content type
+                        'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
+                    },
+                    body: file,  // File is a Blob or File object
+                });
+
+                // Check response status
+                if (response.ok) {
+                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
+                    console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
+                } else {
+                    statusMessage.textContent = `Upload failed. Status: ${response.status}`;
+                    console.error("Upload failed. Status:", response.status, response.statusText);
+                }
+            } catch (error) {
+                statusMessage.textContent = "Upload failed due to an error.";
+                console.error("Upload error:", error);
+            }
+        }
+
+        // Event listener for the upload button
+        uploadButton.onclick = function () {
+            console.log("Upload button clicked...");
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            // Log the file details
+            console.log("Selected file:", file.name, file.type, file.size);
+
+            // Use the presigned URL from the query parameter for the upload
+            if (presignedUrl) {
+                uploadFileToS3(file, presignedUrl);
+            } else {
+                console.error("Pre-signed URL is missing. Cannot upload the file.");
+                alert("Pre-signed URL is missing. Cannot upload the file.");
+            }
+        };
+    </script>
+</body>
+</html>
