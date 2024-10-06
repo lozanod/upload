@@ -1,12 +1,86 @@
-fetch(encodeURI(presignedUrl), {
-    method: 'PUT',
-    body: file,  // No headers, only the file
-})
-.then(response => {
-    if (response.ok) {
-        console.log("Upload successful!");
-    } else {
-        console.error("Upload failed with status:", response.status);
-    }
-})
-.catch(error => console.error("Error during upload:", error));
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Upload to S3</title>
+</head>
+<body>
+    <h2>Upload File to S3</h2>
+    <!-- File Input Field -->
+    <input type="file" id="fileInput" />
+    <br /><br />
+    <!-- Upload Button -->
+    <button id="uploadButton">Upload File</button>
+
+    <p id="statusMessage"></p>
+
+    <script>
+        // Capture the pre-signed URL from the query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+
+        // Check if the pre-signed URL is present
+        if (presignedUrl) {
+            console.log("Using presigned URL: " + presignedUrl);
+        } else {
+            alert("Pre-signed URL is missing. Make sure to pass it correctly.");
+        }
+
+        // JavaScript to handle file upload
+        const fileInput = document.getElementById('fileInput');
+        const uploadButton = document.getElementById('uploadButton');
+        const statusMessage = document.getElementById('statusMessage');
+
+        // Function to upload file to S3 using the pre-signed URL
+        function uploadFileToS3(file, presignedUrl) {
+            console.log("Starting file upload...");
+
+            // Use Fetch API instead of XMLHttpRequest for better handling
+            fetch(presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type || 'application/octet-stream', // Default to 'application/octet-stream' if file type is empty
+                    'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
+                },
+                body: file,  // File is a Blob or File object
+            })
+            .then(response => {
+                if (response.ok) {
+                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
+                    console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
+                } else {
+                    statusMessage.textContent = `Upload failed. Status: ${response.status}`;
+                    console.error("Upload failed. Status:", response.status, response.statusText);
+                }
+            })
+            .catch(error => {
+                statusMessage.textContent = "Upload failed due to an error.";
+                console.error("Upload error:", error);
+            });
+        }
+
+        // Event listener for the upload button
+        uploadButton.onclick = function () {
+            console.log("Upload button clicked...");
+
+            const file = fileInput.files[0];
+            if (!file) {
+                alert("Please select a file first.");
+                return;
+            }
+
+            // Log the file details
+            console.log("Selected file:", file.name, file.type, file.size);
+
+            // Use the presigned URL from the query parameter for the upload
+            if (presignedUrl) {
+                uploadFileToS3(file, presignedUrl);
+            } else {
+                console.error("Pre-signed URL is missing. Cannot upload the file.");
+                alert("Pre-signed URL is missing. Cannot upload the file.");
+            }
+        };
+    </script>
+</body>
+</html>
