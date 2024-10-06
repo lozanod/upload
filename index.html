@@ -51,28 +51,36 @@
     </div>
 
     <script>
+        // Wait for the DOM content to be fully loaded before executing any code
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
             // Capture the pre-signed URL from the query parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const presignedUrlParam = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+            const rawPresignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
 
-            // Decode the presigned URL parameter if it exists
-            let presignedUrl = "";
-            if (presignedUrlParam) {
-                presignedUrl = decodeURIComponent(presignedUrlParam);
-                console.log("Using presigned URL:", presignedUrl);
-            } else {
+            // Decode the URL only if it's encoded
+            const presignedUrl = rawPresignedUrl ? decodeURIComponent(rawPresignedUrl) : null;
+
+            // Check if the pre-signed URL is present
+            if (!presignedUrl) {
                 alert("Pre-signed URL is missing. Please pass it as a query parameter.");
                 console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
                 return; // Exit if the URL is missing
+            } else {
+                console.log("Using presigned URL:", presignedUrl);
             }
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
             const statusMessage = document.getElementById('statusMessage');
+
+            // Ensure the elements are found in the DOM
+            if (!fileInput || !uploadButton || !statusMessage) {
+                console.error("Required DOM elements are not found. Please check the HTML structure.");
+                return;
+            }
 
             // Function to show status messages
             function showMessage(message, isSuccess) {
@@ -94,7 +102,7 @@
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
+                            'Content-Type': file.type || 'application/octet-stream'  // Default to 'application/octet-stream' if file type is empty
                         },
                         body: file  // File is a Blob or File object
                     });
@@ -127,7 +135,12 @@
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
                 // Use the presigned URL from the query parameter for the upload
-                uploadFileToS3(file, presignedUrl);
+                if (presignedUrl) {
+                    uploadFileToS3(file, presignedUrl);
+                } else {
+                    console.error("Pre-signed URL is missing. Cannot upload the file.");
+                    alert("Pre-signed URL is missing. Cannot upload the file.");
+                }
             };
         });
     </script>
