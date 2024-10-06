@@ -22,7 +22,7 @@
 
         // Check if the pre-signed URL is present
         if (presignedUrl) {
-            console.log("Using presigned URL: " + decodeURIComponent(presignedUrl));
+            console.log("Using presigned URL: " + presignedUrl);
         } else {
             alert("Pre-signed URL is missing. Make sure to pass it correctly.");
         }
@@ -36,60 +36,28 @@
         function uploadFileToS3(file, presignedUrl) {
             console.log("Starting file upload...");
 
-            const xhr = new XMLHttpRequest();
-            xhr.open("PUT", decodeURIComponent(presignedUrl), true); // Decode the URL in case it is encoded
-
-            // Check and log file type
-            console.log("File type:", file.type);
-            console.log("Uploading file to:", presignedUrl);
-
-            // Set the Content-Type header based on the file type
-            xhr.setRequestHeader("Content-Type", file.type);
-
-            // Define onload event
-            xhr.onload = function () {
-                console.log("XHR onload called. Status:", xhr.status);
-                if (xhr.status === 200) {
+            // Use Fetch API instead of XMLHttpRequest for better handling
+            fetch(presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type || 'application/octet-stream', // Default to 'application/octet-stream' if file type is empty
+                    'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
+                },
+                body: file,  // File is a Blob or File object
+            })
+            .then(response => {
+                if (response.ok) {
                     statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
                     console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                 } else {
-                    statusMessage.textContent = `Upload failed. Status: ${xhr.status}`;
-                    console.error("Upload failed. Status:", xhr.status, xhr.responseText);
+                    statusMessage.textContent = `Upload failed. Status: ${response.status}`;
+                    console.error("Upload failed. Status:", response.status, response.statusText);
                 }
-            };
-
-            // Define onerror event
-            xhr.onerror = function () {
+            })
+            .catch(error => {
                 statusMessage.textContent = "Upload failed due to an error.";
-                console.error("Upload error. Status:", xhr.status, xhr.responseText);
-            };
-
-            // Define onprogress event to log upload progress
-            xhr.upload.onprogress = function (event) {
-                if (event.lengthComputable) {
-                    const percentCompleted = Math.round((event.loaded / event.total) * 100);
-                    console.log(`Upload progress: ${percentCompleted}%`);
-                }
-            };
-
-            // Log when the request is sent
-            xhr.onloadstart = function () {
-                console.log("XHR request started...");
-                statusMessage.textContent = "Uploading file...";
-            };
-
-            xhr.onloadend = function () {
-                console.log("XHR request ended.");
-            };
-
-            // Send the file to S3
-            try {
-                console.log("Sending file to S3...");
-                xhr.send(file);
-            } catch (error) {
-                console.error("Failed to send the file:", error);
-                statusMessage.textContent = "Upload failed due to an exception.";
-            }
+                console.error("Upload error:", error);
+            });
         }
 
         // Event listener for the upload button
