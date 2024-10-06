@@ -16,6 +16,17 @@
     <p id="statusMessage"></p>
 
     <script>
+        // Capture the pre-signed URL from the query parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+
+        // Check if the pre-signed URL is present
+        if (presignedUrl) {
+            console.log("Using presigned URL: " + presignedUrl);
+        } else {
+            alert("Pre-signed URL is missing. Make sure to pass it correctly.");
+        }
+
         // JavaScript to handle file upload
         const fileInput = document.getElementById('fileInput');
         const uploadButton = document.getElementById('uploadButton');
@@ -54,13 +65,13 @@
                 return;
             }
 
-            // Replace 'YOUR_PRESIGNED_URL' with the actual presigned URL you get from Adalo
-            // You can update this to pass the presigned URL dynamically
-            const presignedUrl = 'YOUR_PRESIGNED_URL'; // e.g., https://bucket-name.s3.amazonaws.com/filename.mp4?... 
-
-            uploadFileToS3(file, presignedUrl);
+            // Use the presigned URL from the query parameter for the upload
+            if (presignedUrl) {
+                uploadFileToS3(file, presignedUrl);
+            } else {
+                alert("Pre-signed URL is missing. Cannot upload the file.");
+            }
         };
     </script>
 </body>
 </html>
-
