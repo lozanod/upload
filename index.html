@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Upload</title>
+    <title>File Upload to Make Webhook</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -54,18 +54,20 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture URL parameters (hunt_id and user_id) from the query string
+            // Capture URL parameters (hunt_id, user_id, and vid) from the query string
             const urlParams = new URLSearchParams(window.location.search);
             const huntId = urlParams.get('hunt_id');
             const userId = urlParams.get('user_id');
+            const vid = urlParams.get('vid'); // New parameter for video ID
 
             console.log("Hunt ID:", huntId);
             console.log("User ID:", userId);
+            console.log("Video ID (vid):", vid);
 
             // Ensure the required URL parameters are present
-            if (!huntId || !userId) {
-                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
-                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
+            if (!huntId || !userId || !vid) {
+                alert("Missing required parameters: 'hunt_id', 'user_id', or 'vid'. Please pass them as query parameters.");
+                console.error("Missing required parameters: 'hunt_id', 'user_id', or 'vid'.");
                 return;
             }
 
@@ -96,6 +98,7 @@
                 formData.append('filesize', file.size); // File size in bytes
                 formData.append('hunt_id', huntId); // Hunt ID parameter
                 formData.append('user_id', userId); // User ID parameter
+                formData.append('vid', vid); // Video ID parameter
 
                 try {
                     // Send the FormData to the webhook using Fetch API
