@@ -51,25 +51,22 @@
     </div>
 
     <script>
-        // Wait for the DOM content to be fully loaded before executing any code
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture the pre-signed URL from the query parameters
+            // Capture the presigned URL from the query parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const rawPresignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+            const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params directly
 
-            // Decode the URL only if it's encoded
-            const presignedUrl = rawPresignedUrl ? decodeURIComponent(rawPresignedUrl) : null;
-
-            // Check if the pre-signed URL is present
+            // Check if the presigned URL is present
             if (!presignedUrl) {
-                alert("Pre-signed URL is missing. Please pass it as a query parameter.");
-                console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
-                return; // Exit if the URL is missing
-            } else {
-                console.log("Using presigned URL:", presignedUrl);
+                alert("Presigned URL is missing. Please pass it as a query parameter.");
+                console.error("Presigned URL is missing. Please pass it as a query parameter.");
+                return;
             }
+
+            // Log the presigned URL to verify its structure
+            console.log("Using presigned URL:", presignedUrl);
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
@@ -99,10 +96,14 @@
                 console.log("File Size:", file.size);
 
                 try {
+                    // Log the full URL to see the exact request being sent
+                    console.log("Request URL:", presignedUrl);
+
+                    // Send the PUT request using Fetch API
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
-                            'Content-Type': file.type || 'application/octet-stream'  // Default to 'application/octet-stream' if file type is empty
+                            'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
                         },
                         body: file  // File is a Blob or File object
                     });
@@ -135,12 +136,7 @@
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
                 // Use the presigned URL from the query parameter for the upload
-                if (presignedUrl) {
-                    uploadFileToS3(file, presignedUrl);
-                } else {
-                    console.error("Pre-signed URL is missing. Cannot upload the file.");
-                    alert("Pre-signed URL is missing. Cannot upload the file.");
-                }
+                uploadFileToS3(file, presignedUrl);
             };
         });
     </script>
