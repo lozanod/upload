@@ -51,18 +51,95 @@
     </div>
 
     <script>
-        // Capture the pre-signed URL from the query parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const presignedUrl = decodeURIComponent(urlParams.get('presignedUrl')); // Get the presigned URL from the query params and decode it
+        // Wait for the DOM content to be fully loaded before executing any code
+        document.addEventListener('DOMContentLoaded', function () {
+            console.log("DOM fully loaded and parsed.");
 
-        // Check if the pre-signed URL is present
-        if (!presignedUrl) {
-            alert("Pre-signed URL is missing. Please pass it as a query parameter.");
-        } else {
-            console.log("Using presigned URL:", presignedUrl);
-        }
+            // Capture the pre-signed URL from the query parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const presignedUrl = decodeURIComponent(urlParams.get('presignedUrl')); // Get and decode the presigned URL from the query params
 
-        // Get DOM elements
-        const fileInput = document.getElementById('fileInput');
-        const uploadButton = document.getElementById('uploadButton');
-        const statusMessage = document.getElementById('statusMes
+            // Check if the pre-signed URL is present
+            if (!presignedUrl) {
+                alert("Pre-signed URL is missing. Please pass it as a query parameter.");
+                console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
+                return; // Exit if the URL is missing
+            } else {
+                console.log("Using presigned URL:", presignedUrl);
+            }
+
+            // Get DOM elements
+            const fileInput = document.getElementById('fileInput');
+            const uploadButton = document.getElementById('uploadButton');
+            const statusMessage = document.getElementById('statusMessage');
+
+            // Ensure the elements are found in the DOM
+            if (!fileInput || !uploadButton || !statusMessage) {
+                console.error("Required DOM elements are not found. Please check the HTML structure.");
+                return;
+            }
+
+            // Function to show status messages
+            function showMessage(message, isSuccess) {
+                console.log(`Status message: ${message}`);
+                statusMessage.textContent = message;
+                statusMessage.className = isSuccess ? 'success' : 'error';
+                statusMessage.style.display = 'block';
+            }
+
+            // Function to upload file to S3 using the pre-signed URL
+            async function uploadFileToS3(file, presignedUrl) {
+                console.log("Starting file upload...");
+                console.log("Presigned URL:", presignedUrl);
+                console.log("File Type:", file.type);
+                console.log("File Name:", file.name);
+                console.log("File Size:", file.size);
+
+                try {
+                    const response = await fetch(presignedUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
+                        },
+                        body: file  // File is a Blob or File object
+                    });
+
+                    if (response.ok) {
+                        showMessage(`File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`, true);
+                        console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
+                    } else {
+                        const errorText = await response.text();
+                        showMessage(`Upload failed. Status: ${response.status}. Error: ${errorText}`, false);
+                        console.error("Upload failed. Status:", response.status, errorText);
+                    }
+                } catch (error) {
+                    showMessage("Upload failed due to an error. Check console for details.", false);
+                    console.error("Upload error:", error);
+                }
+            }
+
+            // Event listener for the upload button
+            uploadButton.onclick = function () {
+                console.log("Upload button clicked...");
+
+                const file = fileInput.files[0];
+                if (!file) {
+                    alert("Please select a file first.");
+                    return;
+                }
+
+                // Log the file details before upload
+                console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
+
+                // Use the presigned URL from the query parameter for the upload
+                if (presignedUrl) {
+                    uploadFileToS3(file, presignedUrl);
+                } else {
+                    console.error("Pre-signed URL is missing. Cannot upload the file.");
+                    alert("Pre-signed URL is missing. Cannot upload the file.");
+                }
+            };
+        });
+    </script>
+</body>
+</html>
