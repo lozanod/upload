@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>File Upload to S3</title>
+    <title>Upload File to Make Webhook</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,7 +39,7 @@
     </style>
 </head>
 <body>
-    <h2>Upload File to S3</h2>
+    <h2>Upload File to Make Webhook</h2>
     <div class="center">
         <!-- File Input Field -->
         <input type="file" id="fileInput" accept="*/*" />
@@ -54,21 +54,8 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture the pre-signed URL from the query parameters and ensure it's decoded correctly
-            const urlParams = new URLSearchParams(window.location.search);
-            const rawPresignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
-
-            // Double-encode the URL to ensure special characters are preserved
-            const presignedUrl = decodeURIComponent(rawPresignedUrl);
-
-            // Check if the pre-signed URL is present
-            if (!presignedUrl) {
-                alert("Pre-signed URL is missing. Please pass it as a query parameter.");
-                console.error("Pre-signed URL is missing. Please pass it as a query parameter.");
-                return; // Exit if the URL is missing
-            } else {
-                console.log("Using presigned URL:", presignedUrl);
-            }
+            // Webhook URL provided by Make (Integromat)
+            const webhookUrl = 'https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs';
 
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
@@ -89,26 +76,29 @@
                 statusMessage.style.display = 'block';
             }
 
-            // Function to upload file to S3 using the pre-signed URL
-            async function uploadFileToS3(file, presignedUrl) {
+            // Function to upload file to Make Webhook using the POST request
+            async function uploadFileToWebhook(file, webhookUrl) {
                 console.log("Starting file upload...");
-                console.log("Presigned URL:", presignedUrl);
+                console.log("Webhook URL:", webhookUrl);
                 console.log("File Type:", file.type);
                 console.log("File Name:", file.name);
                 console.log("File Size:", file.size);
 
+                // Prepare form data for upload
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('fileName', file.name);
+                formData.append('fileType', file.type);
+
                 try {
-                    const response = await fetch(presignedUrl, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
-                        },
-                        body: file  // File is a Blob or File object
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        body: formData,  // Send the file data in the request body
                     });
 
                     if (response.ok) {
-                        showMessage(`File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`, true);
-                        console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
+                        showMessage(`File uploaded successfully to Make Webhook!`, true);
+                        console.log("Upload successful.");
                     } else {
                         const errorText = await response.text();
                         showMessage(`Upload failed. Status: ${response.status}. Error: ${errorText}`, false);
@@ -133,12 +123,12 @@
                 // Log the file details before upload
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
-                // Use the presigned URL from the query parameter for the upload
-                if (presignedUrl) {
-                    uploadFileToS3(file, presignedUrl);
+                // Use the webhook URL for the upload
+                if (webhookUrl) {
+                    uploadFileToWebhook(file, webhookUrl);
                 } else {
-                    console.error("Pre-signed URL is missing. Cannot upload the file.");
-                    alert("Pre-signed URL is missing. Cannot upload the file.");
+                    console.error("Webhook URL is missing. Cannot upload the file.");
+                    alert("Webhook URL is missing. Cannot upload the file.");
                 }
             };
         });
