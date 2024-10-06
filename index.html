@@ -4,6 +4,26 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>File Upload to S3</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            padding: 50px;
+        }
+        input, button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            font-size: 18px;
+            color: green;
+        }
+        #errorMessage {
+            color: red;
+        }
+    </style>
 </head>
 <body>
     <h2>Upload File to S3</h2>
@@ -11,6 +31,7 @@
     <br /><br />
     <button id="uploadButton">Upload File</button>
     <p id="statusMessage"></p>
+    <p id="errorMessage"></p>
 
     <script>
         // Capture the pre-signed URL from the query parameters
@@ -20,6 +41,7 @@
         const fileInput = document.getElementById('fileInput');
         const uploadButton = document.getElementById('uploadButton');
         const statusMessage = document.getElementById('statusMessage');
+        const errorMessage = document.getElementById('errorMessage');
 
         // Function to upload file to S3 using the pre-signed URL
         async function uploadFileToS3(file, presignedUrl) {
@@ -31,23 +53,25 @@
                 const response = await fetch(presignedUrl, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': file.type || 'application/octet-stream',
-                        'x-amz-acl': 'public-read',  // Include if needed
-                        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD' // Include this for S3 unsigned payload
+                        // Include only 'Content-Type' in headers to avoid conflicts with S3 signed URL parameters
+                        'Content-Type': file.type || 'application/octet-stream'
                     },
                     body: file
                 });
 
                 if (response.ok) {
                     statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
+                    errorMessage.textContent = '';
                     console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                 } else {
                     const errorText = await response.text();
-                    statusMessage.textContent = `Upload failed. Status: ${response.status}. Error: ${errorText}`;
+                    statusMessage.textContent = '';
+                    errorMessage.textContent = `Upload failed. Status: ${response.status}. Error: ${errorText}`;
                     console.error("Upload failed. Status:", response.status, errorText);
                 }
             } catch (error) {
-                statusMessage.textContent = "Upload failed due to an error.";
+                statusMessage.textContent = '';
+                errorMessage.textContent = "Upload failed due to an error.";
                 console.error("Upload error:", error);
             }
         }
