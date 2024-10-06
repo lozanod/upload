@@ -28,16 +28,14 @@
             console.log("File Type:", file.type);
 
             try {
-                // URL needs to be properly encoded to avoid missing parameters
-                const encodedUrl = encodeURI(presignedUrl);
-                
-                // Use the fetch API to upload file using the presigned URL
-                const response = await fetch(encodedUrl, {
+                const response = await fetch(presignedUrl, {
                     method: 'PUT',
                     headers: {
-                        'Content-Type': file.type || 'application/octet-stream',  // Set content type based on file type
+                        'Content-Type': file.type || 'application/octet-stream',
+                        'x-amz-acl': 'public-read',  // Include if needed
+                        'x-amz-content-sha256': 'UNSIGNED-PAYLOAD' // Include this for S3 unsigned payload
                     },
-                    body: file // File is a Blob or File object
+                    body: file
                 });
 
                 if (response.ok) {
