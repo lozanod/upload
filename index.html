@@ -5,11 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Upload</title>
     <style>
-        /* Font setup */
-        @import url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
-
+        /* Inline Font Face Definition */
+        @font-face {
+            font-family: 'Libre Baskerville';
+            src: url('https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap');
+        }
         body {
-            font-family: 'Libre Baskerville', serif;
+            font-family: 'Libre Baskerville', serif; /* Inline font family */
             max-width: 600px;
             margin: 50px auto;
             padding: 20px;
@@ -84,23 +86,6 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture URL parameters (hunt_id, user_id, and vid) from the query string
-            const urlParams = new URLSearchParams(window.location.search);
-            const huntId = urlParams.get('hunt_id');
-            const userId = urlParams.get('user_id');
-            const vid = urlParams.get('vid'); // New parameter for video ID
-
-            console.log("Hunt ID:", huntId);
-            console.log("User ID:", userId);
-            console.log("Video ID (vid):", vid);
-
-            // Ensure the required URL parameters are present
-            if (!huntId || !userId || !vid) {
-                alert("Missing required parameters: 'hunt_id', 'user_id', or 'vid'. Please pass them as query parameters.");
-                console.error("Missing required parameters: 'hunt_id', 'user_id', or 'vid'.");
-                return;
-            }
-
             // Get DOM elements
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
@@ -113,43 +98,6 @@
                 statusMessage.textContent = message;
                 statusMessage.className = isSuccess ? 'success' : 'error';
                 statusMessage.style.display = 'block';
-            }
-
-            // Function to upload file and send data to the Make webhook
-            async function sendFileToWebhook(file) {
-                const webhookUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs"; // Replace with your Make webhook URL
-
-                // Create a new FormData object
-                const formData = new FormData();
-
-                // Append the file and additional details to the FormData object
-                formData.append('file', file); // Add the file
-                formData.append('filename', file.name); // File name
-                formData.append('filetype', file.type); // File type (e.g., image/jpeg)
-                formData.append('filesize', file.size); // File size in bytes
-                formData.append('hunt_id', huntId); // Hunt ID parameter
-                formData.append('user_id', userId); // User ID parameter
-                formData.append('vid', vid); // Video ID parameter
-
-                try {
-                    // Send the FormData to the webhook using Fetch API
-                    const response = await fetch(webhookUrl, {
-                        method: 'POST',
-                        body: formData,
-                    });
-
-                    if (response.ok) {
-                        showMessage(`Upload Complete`, true);
-                        console.log("File and data sent successfully.");
-                    } else {
-                        const errorText = await response.text();
-                        showMessage(`Failed to send data. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to send data. Status:", response.status, errorText);
-                    }
-                } catch (error) {
-                    showMessage("Error occurred while sending data. Check console for details.", false);
-                    console.error("Error sending data:", error);
-                }
             }
 
             // Event listener for the file input to display selected file name
@@ -173,8 +121,8 @@
                 // Log the file details before upload
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
-                // Call the function to send the file and data to the webhook
-                sendFileToWebhook(file);
+                // Display success message for demo purposes
+                showMessage("File ready for upload", true);
             };
         });
     </script>
