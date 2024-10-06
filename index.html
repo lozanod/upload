@@ -16,7 +16,7 @@
     <p id="statusMessage"></p>
 
     <script>
-        // Get presigned URL from the query parameters
+        // Capture the pre-signed URL from the query parameters
         const urlParams = new URLSearchParams(window.location.search);
         const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
 
@@ -32,33 +32,32 @@
         const uploadButton = document.getElementById('uploadButton');
         const statusMessage = document.getElementById('statusMessage');
 
-        // Function to upload file to S3 using the presigned URL
-        async function uploadFileToS3(file, presignedUrl) {
+        // Function to upload file to S3 using the pre-signed URL
+        function uploadFileToS3(file, presignedUrl) {
             console.log("Starting file upload...");
 
-            // Use Fetch API for the PUT request to S3
-            try {
-                const response = await fetch(presignedUrl, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': file.type || 'application/octet-stream', // Set the correct content type
-                        'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
-                    },
-                    body: file,  // File is a Blob or File object
-                });
-
-                // Check response status
+            // Use Fetch API instead of XMLHttpRequest for better handling
+            fetch(presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type || 'application/octet-stream', // Default to 'application/octet-stream' if file type is empty
+                    'x-amz-acl': 'public-read',  // Include this only if required by the presigned URL
+                },
+                body: file,  // File is a Blob or File object
+            })
+            .then(response => {
                 if (response.ok) {
-                    statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
+                    statusMessage.textContent = File uploaded successfully! File URL: ${presignedUrl.split('?')[0]};
                     console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                 } else {
-                    statusMessage.textContent = `Upload failed. Status: ${response.status}`;
+                    statusMessage.textContent = Upload failed. Status: ${response.status};
                     console.error("Upload failed. Status:", response.status, response.statusText);
                 }
-            } catch (error) {
+            })
+            .catch(error => {
                 statusMessage.textContent = "Upload failed due to an error.";
                 console.error("Upload error:", error);
-            }
+            });
         }
 
         // Event listener for the upload button
