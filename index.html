@@ -53,13 +53,13 @@
     <script>
         // Capture the pre-signed URL from the query parameters
         const urlParams = new URLSearchParams(window.location.search);
-        const presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
+        let presignedUrl = urlParams.get('presignedUrl'); // Get the presigned URL from the query params
 
         // Check if the pre-signed URL is present
         if (!presignedUrl) {
             alert("Pre-signed URL is missing. Please pass it as a query parameter.");
         } else {
-            console.log("Using presigned URL:", decodeURIComponent(presignedUrl));
+            console.log("Using presigned URL:", presignedUrl);
         }
 
         // Get DOM elements
@@ -80,8 +80,20 @@
             console.log("Presigned URL:", presignedUrl);
             console.log("File Type:", file.type);
 
+            // Decode the presigned URL (if needed) to avoid URL-encoded issues
             try {
-                const response = await fetch(decodeURIComponent(presignedUrl), {
+                // Log headers and file details
+                console.log("File details: ", {
+                    name: file.name,
+                    type: file.type,
+                    size: file.size,
+                });
+
+                // Make sure the URL is not further modified.
+                const decodedUrl = presignedUrl;
+
+                // Perform the PUT request
+                const response = await fetch(decodedUrl, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': file.type || 'application/octet-stream',  // Default to 'application/octet-stream' if file type is empty
