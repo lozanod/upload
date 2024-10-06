@@ -36,42 +36,26 @@
         function uploadFileToS3(file, presignedUrl) {
             const xhr = new XMLHttpRequest();
             xhr.open("PUT", presignedUrl, true);
-            
-            // Set headers for the upload request
+
+            // Check and log file type
+            console.log("File type:", file.type);
+            console.log("Uploading file to:", presignedUrl);
+
+            // Set the Content-Type header based on the file type
             xhr.setRequestHeader("Content-Type", file.type);
-            xhr.setRequestHeader("x-amz-acl", "public-read");
+
+            // Optional: Remove the x-amz-acl header to avoid conflicts with pre-signed URL permissions
+            // xhr.setRequestHeader("x-amz-acl", "public-read"); // Uncomment if needed
 
             xhr.onload = function () {
                 if (xhr.status === 200) {
                     statusMessage.textContent = `File uploaded successfully! File URL: ${presignedUrl.split('?')[0]}`;
+                    console.log("Upload successful. File URL:", presignedUrl.split('?')[0]);
                 } else {
                     statusMessage.textContent = `Upload failed. Status: ${xhr.status}`;
+                    console.error("Upload failed. Status:", xhr.status, xhr.responseText);
                 }
             };
 
             xhr.onerror = function () {
-                statusMessage.textContent = "Upload failed due to an error.";
-            };
-
-            // Send the file to S3
-            xhr.send(file);
-        }
-
-        // Event listener for the upload button
-        uploadButton.onclick = function () {
-            const file = fileInput.files[0];
-            if (!file) {
-                alert("Please select a file first.");
-                return;
-            }
-
-            // Use the presigned URL from the query parameter for the upload
-            if (presignedUrl) {
-                uploadFileToS3(file, presignedUrl);
-            } else {
-                alert("Pre-signed URL is missing. Cannot upload the file.");
-            }
-        };
-    </script>
-</body>
-</html>
+                statusMessage.textC
