@@ -181,30 +181,46 @@
                 return null;
             }
 
-            // Function to get presigned URL from the Lambda function using the new video record ID
-            async function getPresignedUrl(videoRecordId, fileType) {
-                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/"; // Replace with your Lambda Function URL
+// Function to get presigned URL from the Lambda function using the new video record ID
+async function getPresignedUrl(videoRecordId, fileType) {
+    const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/";
 
-                try {
-                    const response = await fetch(`${lambdaUrl}?key=${videoRecordId}&contentType=${fileType}`, {
-                        method: 'GET'
-                    });
+    // Log the parameters to verify
+    console.log("Generating presigned URL with parameters:", {
+        key: videoRecordId,
+        contentType: fileType,
+    });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log("Presigned URL:", data.presigned_url);
-                        return data.presigned_url; // This should include the presigned URL
-                    } else {
-                        const errorText = await response.text();
-                        showMessage(`Failed to get presigned URL. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to get presigned URL. Status:", response.status, errorText);
-                    }
-                } catch (error) {
-                    showMessage("Error occurred while getting presigned URL. Check console for details.", false);
-                    console.error("Error getting presigned URL:", error);
-                }
-                return null;
+    try {
+        // Use URLSearchParams to properly format the query parameters
+        const url = new URL(lambdaUrl);
+        url.searchParams.append("filename", videoRecordId); // Correct parameter name should be 'filename'
+        url.searchParams.append("contentType", fileType); // Correct parameter name should be 'contentType'
+
+        console.log("Requesting presigned URL from:", url.toString()); // Log the URL to check correctness
+
+        const response = await fetch(url.toString(), {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
             }
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            console.log("Presigned URL:", data.uploadURL);
+            return data.uploadURL; // This should include the presigned URL
+        } else {
+            const errorText = await response.text();
+            showMessage(`Failed to get presigned URL. Status: ${response.status}. Error: ${errorText}`, false);
+            console.error("Failed to get presigned URL. Status:", response.status, errorText);
+        }
+    } catch (error) {
+        showMessage("Error occurred while getting presigned URL. Check console for details.", false);
+        console.error("Error getting presigned URL:", error);
+    }
+    return null;
+}
 
             // Function to upload file directly to S3 using the presigned URL
             async function uploadFileToS3(file, presignedUrl) {
