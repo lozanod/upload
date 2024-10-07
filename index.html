@@ -132,22 +132,15 @@
                     }
 
                     const data = await response.json();
-                    console.log("Raw response from Make.com webhook:", data);
+                    console.log("Raw response from Make.com webhook:", JSON.stringify(data));
 
-                    if (typeof data === 'number') {
-                        // If the response is just a number, assume it's the record ID
-                        return data.toString();
-                    } else if (data && typeof data === 'object') {
-                        // If it's an object, look for a field that might contain the record ID
-                        const possibleIdFields = ['record_id', 'id', 'videoId', 'video_id'];
-                        for (const field of possibleIdFields) {
-                            if (data[field]) {
-                                return data[field].toString();
-                            }
-                        }
+                    // Check for record ID in different possible fields
+                    const recordId = data.record_id || data.id || data.videoId || data.video_id || data;
+                    if (!recordId) {
+                        throw new Error("Record ID not found in the response");
                     }
 
-                    throw new Error("Unexpected response format. Unable to extract record ID.");
+                    return recordId.toString();
                 } catch (error) {
                     console.error("Error creating video record:", error);
                     showMessage(`Failed to create video record: ${error.message}`, false);
@@ -177,7 +170,8 @@
                     }
 
                     const data = await response.json();
-                    console.log("Presigned URL Response:", data);
+                    console.log("Presigned URL Response:", JSON.stringify(data));
+
                     if (!data.uploadURL) {
                         throw new Error("Upload URL not found in the response");
                     }
