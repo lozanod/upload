@@ -154,14 +154,17 @@
                         const textResponse = await response.text(); // Read as plain text
                         console.log("Raw Response from Make:", textResponse);
 
+                        // Check if the response is a plain number (e.g., "146")
+                        const isPlainNumber = !isNaN(textResponse.trim());
+                        if (isPlainNumber) {
+                            return { record_id: textResponse.trim() };
+                        }
+
                         try {
-                            const data = JSON.parse(textResponse); // Attempt to parse the text response as JSON
+                            // Attempt to parse the text response as JSON
+                            const data = JSON.parse(textResponse);
                             console.log("Parsed Video Record Data:", data);
-                            if (data && data.record_id) {
-                                return data;
-                            } else {
-                                throw new Error("Invalid response structure.");
-                            }
+                            return data; // Return the parsed JSON data
                         } catch (err) {
                             console.error("Failed to parse JSON from response. Error:", err);
                             showMessage("Failed to parse response from server. Aborting upload.", false);
@@ -245,7 +248,7 @@
 
                 // Step 1: Create a new video record and get the record ID
                 const videoData = await createVideoRecord(file);
-                if (!videoData || !videoData.record_id) { // Assuming `record_id` is returned from Make
+                if (!videoData || !videoData.record_id) {
                     showMessage("Failed to create video record. Aborting upload.", false);
                     return;
                 }
