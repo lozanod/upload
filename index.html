@@ -1,10 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- ... (previous head content remains the same) ... -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Upload with S3 Presigned URL</title>
+    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* Your existing styles here */
+    </style>
 </head>
 <body>
-    <!-- ... (previous body content remains the same) ... -->
+    <h2>Video Upload with S3 Presigned 7</h2>
+    <div class="center">
+        <input type="file" id="fileInput" accept="*/*" />
+        <p id="fileName">No file selected</p>
+        <button id="uploadButton">Upload File</button>
+        <p id="statusMessage"></p>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
