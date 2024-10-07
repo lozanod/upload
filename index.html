@@ -6,11 +6,64 @@
     <title>Video Upload with S3 Presigned URL</title>
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        /* Your existing styles here */
+        body {
+            font-family: 'Libre Baskerville', serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            text-align: center;
+        }
+        .center {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #fileInput {
+            margin-bottom: 10px;
+        }
+        #uploadButton {
+            padding: 10px 20px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            background-color: #4285f4;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+            text-align: center;
+        }
+        #uploadButton:hover {
+            background-color: #357ae8;
+        }
+        #statusMessage {
+            margin-top: 20px;
+            padding: 10px;
+            border-radius: 5px;
+            display: none;
+        }
+        #statusMessage.success {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        #statusMessage.error {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        #fileName {
+            margin-top: 10px;
+            font-style: italic;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h2>Video Upload with S3 Presigned 7</h2>
+    <h2>Video Upload with S3 Presigned URL</h2>
     <div class="center">
         <input type="file" id="fileInput" accept="*/*" />
         <p id="fileName">No file selected</p>
@@ -20,7 +73,41 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            // ... (previous code remains the same) ...
+            console.log("DOM fully loaded and parsed.");
+
+            const urlParams = new URLSearchParams(window.location.search);
+            const huntId = urlParams.get('hunt_id');
+            const userId = urlParams.get('user_id');
+
+            console.log("Hunt ID:", huntId);
+            console.log("User ID:", userId);
+
+            if (!huntId || !userId) {
+                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
+                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
+                return;
+            }
+
+            const fileInput = document.getElementById('fileInput');
+            const uploadButton = document.getElementById('uploadButton');
+            const statusMessage = document.getElementById('statusMessage');
+            const fileNameDisplay = document.getElementById('fileName');
+
+            function showMessage(message, isSuccess) {
+                console.log(`Status message: ${message}`);
+                statusMessage.textContent = message;
+                statusMessage.className = isSuccess ? 'success' : 'error';
+                statusMessage.style.display = 'block';
+            }
+
+            fileInput.addEventListener('change', function () {
+                const file = fileInput.files[0];
+                if (file) {
+                    fileNameDisplay.textContent = `Selected file: ${file.name}`;
+                } else {
+                    fileNameDisplay.textContent = "No file selected";
+                }
+            });
 
             async function createVideoRecord(file) {
                 const createRecordUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs";
@@ -68,7 +155,63 @@
                 }
             }
 
-            // ... (rest of the code remains the same) ...
+            async function getPresignedUrl(videoRecordId, fileType) {
+                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/";
+
+                try {
+                    const url = new URL(lambdaUrl);
+                    url.searchParams.append("filename", videoRecordId);
+                    url.searchParams.append("contentType", fileType);
+
+                    console.log("Requesting presigned URL from:", url.toString());
+
+                    const response = await fetch(url.toString(), {
+                        method: 'GET',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    console.log("Presigned URL Response:", data);
+                    if (!data.uploadURL) {
+                        throw new Error("Upload URL not found in the response");
+                    }
+                    return data.uploadURL;
+                } catch (error) {
+                    console.error("Error getting presigned URL:", error);
+                    showMessage(`Failed to get presigned URL: ${error.message}`, false);
+                    return null;
+                }
+            }
+
+            async function uploadFileToS3(file, presignedUrl) {
+                try {
+                    const response = await fetch(presignedUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream',
+                        },
+                        body: file,
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    console.log("File uploaded to S3 successfully.");
+                    showMessage(`File uploaded to S3 successfully!`, true);
+                    return true;
+                } catch (error) {
+                    console.error("Error uploading file to S3:", error);
+                    showMessage(`Failed to upload to S3: ${error.message}`, false);
+                    return false;
+                }
+            }
 
             uploadButton.onclick = async function () {
                 console.log("Upload button clicked...");
@@ -89,8 +232,19 @@
                     }
                     console.log("Created video record with ID:", videoRecordId);
 
-                    // ... (rest of the upload process remains the same) ...
+                    showMessage("Getting presigned URL...", true);
+                    const presignedUrl = await getPresignedUrl(videoRecordId, file.type);
+                    if (!presignedUrl) {
+                        throw new Error("Failed to get presigned URL");
+                    }
 
+                    showMessage("Uploading file to S3...", true);
+                    const uploadSuccess = await uploadFileToS3(file, presignedUrl);
+                    if (!uploadSuccess) {
+                        throw new Error("Failed to upload file to S3");
+                    }
+
+                    showMessage("File uploaded successfully!", true);
                 } catch (error) {
                     console.error("Error in upload process:", error);
                     showMessage(`Upload process failed: ${error.message}`, false);
