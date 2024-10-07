@@ -187,7 +187,7 @@ async function getPresignedUrl(videoRecordId, fileType) {
 
     // Log the parameters to verify
     console.log("Generating presigned URL with parameters:", {
-        key: videoRecordId,
+        filename: videoRecordId, // Using 'filename' instead of 'key'
         contentType: fileType,
     });
 
