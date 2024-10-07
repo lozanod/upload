@@ -63,11 +63,11 @@
     </style>
 </head>
 <body>
-    <h2>Video Upload with S3 Presigned URL</h2>
+    <h2>Upload Video</h2>
     <div class="center">
         <input type="file" id="fileInput" accept="*/*" />
         <p id="fileName">No file selected</p>
-        <button id="uploadButton">Upload File</button>
+        <button id="uploadButton">Upload</button>
         <p id="statusMessage"></p>
     </div>
 
@@ -197,12 +197,12 @@
                         throw new Error(`HTTP error! status: ${response.status}`);
                     }
 
-                    console.log("File uploaded to S3 successfully.");
-                    showMessage(`File uploaded to S3 successfully!`, true);
+                    console.log("Upload Successful!");
+                    showMessage(`Upload Successful!`, true);
                     return true;
                 } catch (error) {
                     console.error("Error uploading file to S3:", error);
-                    showMessage(`Failed to upload to S3: ${error.message}`, false);
+                    showMessage(`Upload Failed: ${error.message}`, false);
                     return false;
                 }
             }
@@ -226,13 +226,13 @@
                     }
                     console.log("Created video record with ID:", videoRecordId);
 
-                    showMessage("Getting presigned URL...", true);
+                    showMessage("In progress...", true);
                     const presignedUrl = await getPresignedUrl(videoRecordId, file.type);
                     if (!presignedUrl) {
                         throw new Error("Failed to get presigned URL");
                     }
 
-                    showMessage("Uploading file to S3...", true);
+                    showMessage("Uploading file...", true);
                     const uploadSuccess = await uploadFileToS3(file, presignedUrl);
                     if (!uploadSuccess) {
                         throw new Error("Failed to upload file to S3");
