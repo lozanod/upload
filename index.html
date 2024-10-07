@@ -1,243 +1,173 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Upload with S3 Presigned URL</title>
-    <!-- Import Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
-    <style>
-        body {
-            font-family: 'Libre Baskerville', serif; /* Use Libre Baskerville font */
-            max-width: 600px;
-            margin: 50px auto;
-            padding: 20px;
-            border: 1px solid #ddd;
-            border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            text-align: center;
-        }
-        .center {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-        #fileInput {
-            margin-bottom: 10px;
-        }
-        #uploadButton {
-            padding: 10px 20px;
-            margin: 10px 0;
-            border: 1px solid #ddd;
-            border-radius: 20px; /* Rounded edges for the button */
-            background-color: #4285f4; /* Background color */
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: background-color 0.3s ease;
-            text-align: center;
-        }
-        #uploadButton:hover {
-            background-color: #357ae8; /* Hover color */
-        }
-        #statusMessage {
-            margin-top: 20px;
-            padding: 10px;
-            border-radius: 5px;
-            display: none;
-        }
-        #statusMessage.success {
-            background-color: #d4edda;
-            color: #155724;
-        }
-        #statusMessage.error {
-            background-color: #f8d7da;
-            color: #721c24;
-        }
-        #fileName {
-            margin-top: 10px;
-            font-style: italic;
-            text-align: center; /* Center the file name text */
-        }
-    </style>
-</head>
-<body>
-    <h2>Video Upload with S3 Presigned URL</h2>
-    <div class="center">
-        <!-- File Input Field -->
-        <input type="file" id="fileInput" accept="*/*" />
-        <!-- Display the selected file name -->
-        <p id="fileName">No file selected</p>
-        <!-- Upload Button -->
-        <button id="uploadButton">Upload File</button>
-        <!-- Status Message -->
-        <p id="statusMessage"></p>
-    </div>
+document.addEventListener('DOMContentLoaded', function () {
+    console.log("DOM fully loaded and parsed.");
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            console.log("DOM fully loaded and parsed.");
+    // Capture URL parameters (hunt_id and user_id) from the query string
+    const urlParams = new URLSearchParams(window.location.search);
+    const huntId = urlParams.get('hunt_id');
+    const userId = urlParams.get('user_id');
 
-            // Capture URL parameters (hunt_id and user_id) from the query string
-            const urlParams = new URLSearchParams(window.location.search);
-            const huntId = urlParams.get('hunt_id');
-            const userId = urlParams.get('user_id');
+    console.log("Hunt ID:", huntId);
+    console.log("User ID:", userId);
 
-            console.log("Hunt ID:", huntId);
-            console.log("User ID:", userId);
+    // Ensure the required URL parameters are present
+    if (!huntId || !userId) {
+        alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
+        console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
+        return;
+    }
 
-            // Ensure the required URL parameters are present
-            if (!huntId || !userId) {
-                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
-                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
-                return;
-            }
+    // Get DOM elements
+    const fileInput = document.getElementById('fileInput');
+    const uploadButton = document.getElementById('uploadButton');
+    const statusMessage = document.getElementById('statusMessage');
+    const fileNameDisplay = document.getElementById('fileName');
 
-            // Get DOM elements
-            const fileInput = document.getElementById('fileInput');
-            const uploadButton = document.getElementById('uploadButton');
-            const statusMessage = document.getElementById('statusMessage');
-            const fileNameDisplay = document.getElementById('fileName');
+    // Function to show status messages
+    function showMessage(message, isSuccess) {
+        console.log(`Status message: ${message}`);
+        statusMessage.textContent = message;
+        statusMessage.className = isSuccess ? 'success' : 'error';
+        statusMessage.style.display = 'block';
+    }
 
-            // Function to show status messages
-            function showMessage(message, isSuccess) {
-                console.log(`Status message: ${message}`);
-                statusMessage.textContent = message;
-                statusMessage.className = isSuccess ? 'success' : 'error';
-                statusMessage.style.display = 'block';
-            }
+    // Event listener for the file input to display selected file name
+    fileInput.addEventListener('change', function () {
+        const file = fileInput.files[0];
+        if (file) {
+            fileNameDisplay.textContent = `Selected file: ${file.name}`;
+        } else {
+            fileNameDisplay.textContent = "No file selected";
+        }
+    });
 
-            // Event listener for the file input to display selected file name
-            fileInput.addEventListener('change', function () {
-                const file = fileInput.files[0];
-                if (file) {
-                    fileNameDisplay.textContent = `Selected file: ${file.name}`;
-                } else {
-                    fileNameDisplay.textContent = "No file selected";
-                }
+    // Function to create a new video record in Make and get the record ID
+    async function createVideoRecord(file) {
+        const createRecordUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs"; // Replace with Make.com webhook URL
+
+        // Create payload for the webhook to generate the new record
+        const payload = {
+            hunt_id: huntId,
+            user_id: userId,
+            filename: file.name,
+            filetype: file.type,
+            filesize: file.size
+        };
+
+        try {
+            const response = await fetch(createRecordUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload),
             });
 
-            // Function to create a new video record in Make and get the record ID
-            async function createVideoRecord(file) {
-                const createRecordUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs"; // Replace with Make.com webhook URL
-
-                // Create payload for the webhook to generate the new record
-                const payload = {
-                    hunt_id: huntId,
-                    user_id: userId,
-                    filename: file.name,
-                    filetype: file.type,
-                    filesize: file.size
-                };
+            if (response.ok) {
+                const textResponse = await response.text(); // Read as plain text
+                console.log("Raw Response from Make:", textResponse);
 
                 try {
-                    const response = await fetch(createRecordUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
-
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log("New Video Record ID:", data);
-                        return data; // This should include the new video record ID
+                    const data = JSON.parse(textResponse); // Attempt to parse the text response as JSON
+                    console.log("Parsed Video Record Data:", data);
+                    if (data && data.record_id) {
+                        return data;
                     } else {
-                        const errorText = await response.text();
-                        showMessage(`Failed to create video record. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to create video record. Status:", response.status, errorText);
+                        throw new Error("Invalid response structure.");
                     }
-                } catch (error) {
-                    showMessage("Error occurred while creating video record. Check console for details.", false);
-                    console.error("Error creating video record:", error);
+                } catch (err) {
+                    console.error("Failed to parse JSON from response. Error:", err);
+                    showMessage("Failed to parse response from server. Aborting upload.", false);
                 }
-                return null;
+            } else {
+                const errorText = await response.text();
+                showMessage(`Failed to create video record. Status: ${response.status}. Error: ${errorText}`, false);
+                console.error("Failed to create video record. Status:", response.status, errorText);
             }
+        } catch (error) {
+            showMessage("Error occurred while creating video record. Check console for details.", false);
+            console.error("Error creating video record:", error);
+        }
+        return null;
+    }
 
-            // Function to get presigned URL from the Lambda function using the new video record ID
-            async function getPresignedUrl(videoRecordId, fileType) {
-                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/"; // Replace with your Lambda Function URL
+    // Function to get presigned URL from the Lambda function using the new video record ID
+    async function getPresignedUrl(videoRecordId, fileType) {
+        const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/"; // Replace with your Lambda Function URL
 
-                try {
-                    const response = await fetch(`${lambdaUrl}?key=${videoRecordId}&contentType=${fileType}`, {
-                        method: 'GET'
-                    });
+        try {
+            const response = await fetch(`${lambdaUrl}?key=${videoRecordId}&contentType=${fileType}`, {
+                method: 'GET'
+            });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        console.log("Presigned URL:", data.presigned_url);
-                        return data.presigned_url; // This should include the presigned URL
-                    } else {
-                        const errorText = await response.text();
-                        showMessage(`Failed to get presigned URL. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to get presigned URL. Status:", response.status, errorText);
-                    }
-                } catch (error) {
-                    showMessage("Error occurred while getting presigned URL. Check console for details.", false);
-                    console.error("Error getting presigned URL:", error);
-                }
-                return null;
+            if (response.ok) {
+                const data = await response.json();
+                console.log("Presigned URL:", data.presigned_url);
+                return data.presigned_url; // This should include the presigned URL
+            } else {
+                const errorText = await response.text();
+                showMessage(`Failed to get presigned URL. Status: ${response.status}. Error: ${errorText}`, false);
+                console.error("Failed to get presigned URL. Status:", response.status, errorText);
             }
+        } catch (error) {
+            showMessage("Error occurred while getting presigned URL. Check console for details.", false);
+            console.error("Error getting presigned URL:", error);
+        }
+        return null;
+    }
 
-            // Function to upload file directly to S3 using the presigned URL
-            async function uploadFileToS3(file, presignedUrl) {
-                try {
-                    const response = await fetch(presignedUrl, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': file.type || 'application/octet-stream', // Use file type if available
-                        },
-                        body: file, // File is a Blob or File object
-                    });
+    // Function to upload file directly to S3 using the presigned URL
+    async function uploadFileToS3(file, presignedUrl) {
+        try {
+            const response = await fetch(presignedUrl, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': file.type || 'application/octet-stream', // Use file type if available
+                },
+                body: file, // File is a Blob or File object
+            });
 
-                    if (response.ok) {
-                        showMessage(`File uploaded to S3 successfully!`, true);
-                        console.log("File uploaded to S3 successfully.");
-                        return true;
-                    } else {
-                        const errorText = await response.text();
-                        showMessage(`Failed to upload to S3. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to upload to S3. Status:", response.status, errorText);
-                    }
-                } catch (error) {
-                    showMessage("Error occurred while uploading file to S3. Check console for details.", false);
-                    console.error("Error uploading file to S3:", error);
-                }
-                return false;
+            if (response.ok) {
+                showMessage(`File uploaded to S3 successfully!`, true);
+                console.log("File uploaded to S3 successfully.");
+                return true;
+            } else {
+                const errorText = await response.text();
+                showMessage(`Failed to upload to S3. Status: ${response.status}. Error: ${errorText}`, false);
+                console.error("Failed to upload to S3. Status:", response.status, errorText);
             }
+        } catch (error) {
+            showMessage("Error occurred while uploading file to S3. Check console for details.", false);
+            console.error("Error uploading file to S3:", error);
+        }
+        return false;
+    }
 
-            // Event listener for the upload button
-            uploadButton.onclick = async function () {
-                console.log("Upload button clicked...");
+    // Event listener for the upload button
+    uploadButton.onclick = async function () {
+        console.log("Upload button clicked...");
 
-                const file = fileInput.files[0];
-                if (!file) {
-                    alert("Please select a file first.");
-                    return;
-                }
+        const file = fileInput.files[0];
+        if (!file) {
+            alert("Please select a file first.");
+            return;
+        }
 
-                // Log the file details before upload
-                console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
+        // Log the file details before upload
+        console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
-                // Step 1: Create a new video record and get the record ID
-                const videoData = await createVideoRecord(file);
-                if (!videoData || !videoData.record_id) { // Assuming `record_id` is returned from Make
-                    showMessage("Failed to create video record. Aborting upload.", false);
-                    return;
-                }
+        // Step 1: Create a new video record and get the record ID
+        const videoData = await createVideoRecord(file);
+        if (!videoData || !videoData.record_id) { // Assuming `record_id` is returned from Make
+            showMessage("Failed to create video record. Aborting upload.", false);
+            return;
+        }
 
-                // Step 2: Get the presigned URL using the video record ID as the file name
-                const presignedUrl = await getPresignedUrl(videoData.record_id, file.type);
-                if (!presignedUrl) {
-                    showMessage("Failed to get presigned URL. Aborting upload.", false);
-                    return;
-                }
+        // Step 2: Get the presigned URL using the video record ID as the file name
+        const presignedUrl = await getPresignedUrl(videoData.record_id, file.type);
+        if (!presignedUrl) {
+            showMessage("Failed to get presigned URL. Aborting upload.", false);
+            return;
+        }
 
-                // Step 3: Upload the file to S3 using the presigned URL
-                await uploadFileToS3(file, presignedUrl);
-            };
-        });
-    </script>
-</body>
-</html>
+        // Step 3: Upload the file to S3 using the presigned URL
+        await uploadFileToS3(file, presignedUrl);
+    };
+});
