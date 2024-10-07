@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Upload7</title>
+    <title>Video Upload with S3 Presigned URL</title>
     <!-- Import Google Font -->
     <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -64,7 +64,7 @@
     </style>
 </head>
 <body>
-    <h2>Video Upload</h2>
+    <h2>Video Upload with S3 Presigned URL</h2>
     <div class="center">
         <!-- File Input Field -->
         <input type="file" id="fileInput" accept="*/*" />
@@ -80,18 +80,16 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            // Capture URL parameters (hunt_id, user_id, and vid) from the query string
+            // Capture URL parameters (hunt_id and user_id) from the query string
             const urlParams = new URLSearchParams(window.location.search);
             const huntId = urlParams.get('hunt_id');
             const userId = urlParams.get('user_id');
-            // const vid = urlParams.get('vid'); // Commented out vid parameter
 
             console.log("Hunt ID:", huntId);
             console.log("User ID:", userId);
-            // console.log("Video ID (vid):", vid); // Commented out log for vid
 
             // Ensure the required URL parameters are present
-            if (!huntId || !userId) { // Removed vid from the condition check
+            if (!huntId || !userId) {
                 alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
                 console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
                 return;
@@ -101,7 +99,7 @@
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
             const statusMessage = document.getElementById('statusMessage');
-            const fileNameDisplay = document.getElementById('fileName'); // For displaying selected file name
+            const fileNameDisplay = document.getElementById('fileName');
 
             // Function to show status messages
             function showMessage(message, isSuccess) {
@@ -121,45 +119,96 @@
                 }
             });
 
-            // Function to upload file and send data to the Make webhook
-            async function sendFileToWebhook(file) {
-                const webhookUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs"; // Replace with your Make webhook URL
+            // Function to create a new video record in Make and get the record ID
+            async function createVideoRecord(file) {
+                const createRecordUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs"; // Replace with Make.com webhook URL
 
-                // Create a new FormData object
-                const formData = new FormData();
-
-                // Append the file and additional details to the FormData object
-                formData.append('file', file); // Add the file
-                formData.append('filename', file.name); // File name
-                formData.append('filetype', file.type); // File type (e.g., image/jpeg)
-                formData.append('filesize', file.size); // File size in bytes
-                formData.append('hunt_id', huntId); // Hunt ID parameter
-                formData.append('user_id', userId); // User ID parameter
-                // formData.append('vid', vid); // Commented out vid parameter
+                // Create payload for the webhook to generate the new record
+                const payload = {
+                    hunt_id: huntId,
+                    user_id: userId,
+                    filename: file.name,
+                    filetype: file.type,
+                    filesize: file.size
+                };
 
                 try {
-                    // Send the FormData to the webhook using Fetch API
-                    const response = await fetch(webhookUrl, {
+                    const response = await fetch(createRecordUrl, {
                         method: 'POST',
-                        body: formData,
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
                     });
 
                     if (response.ok) {
-                        showMessage(`Upload Complete`, true);
-                        console.log("File and data sent successfully.");
+                        const data = await response.json();
+                        console.log("New Video Record ID:", data);
+                        return data; // This should include the new video record ID
                     } else {
                         const errorText = await response.text();
-                        showMessage(`Failed to send data. Status: ${response.status}. Error: ${errorText}`, false);
-                        console.error("Failed to send data. Status:", response.status, errorText);
+                        showMessage(`Failed to create video record. Status: ${response.status}. Error: ${errorText}`, false);
+                        console.error("Failed to create video record. Status:", response.status, errorText);
                     }
                 } catch (error) {
-                    showMessage("Error occurred while sending data. Check console for details.", false);
-                    console.error("Error sending data:", error);
+                    showMessage("Error occurred while creating video record. Check console for details.", false);
+                    console.error("Error creating video record:", error);
                 }
+                return null;
+            }
+
+            // Function to get presigned URL from the Lambda function using the new video record ID
+            async function getPresignedUrl(videoRecordId, fileType) {
+                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/"; // Replace with your Lambda Function URL
+
+                try {
+                    const response = await fetch(`${lambdaUrl}?key=${videoRecordId}&contentType=${fileType}`, {
+                        method: 'GET'
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        console.log("Presigned URL:", data.presigned_url);
+                        return data.presigned_url; // This should include the presigned URL
+                    } else {
+                        const errorText = await response.text();
+                        showMessage(`Failed to get presigned URL. Status: ${response.status}. Error: ${errorText}`, false);
+                        console.error("Failed to get presigned URL. Status:", response.status, errorText);
+                    }
+                } catch (error) {
+                    showMessage("Error occurred while getting presigned URL. Check console for details.", false);
+                    console.error("Error getting presigned URL:", error);
+                }
+                return null;
+            }
+
+            // Function to upload file directly to S3 using the presigned URL
+            async function uploadFileToS3(file, presignedUrl) {
+                try {
+                    const response = await fetch(presignedUrl, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': file.type || 'application/octet-stream', // Use file type if available
+                        },
+                        body: file, // File is a Blob or File object
+                    });
+
+                    if (response.ok) {
+                        showMessage(`File uploaded to S3 successfully!`, true);
+                        console.log("File uploaded to S3 successfully.");
+                        return true;
+                    } else {
+                        const errorText = await response.text();
+                        showMessage(`Failed to upload to S3. Status: ${response.status}. Error: ${errorText}`, false);
+                        console.error("Failed to upload to S3. Status:", response.status, errorText);
+                    }
+                } catch (error) {
+                    showMessage("Error occurred while uploading file to S3. Check console for details.", false);
+                    console.error("Error uploading file to S3:", error);
+                }
+                return false;
             }
 
             // Event listener for the upload button
-            uploadButton.onclick = function () {
+            uploadButton.onclick = async function () {
                 console.log("Upload button clicked...");
 
                 const file = fileInput.files[0];
@@ -171,8 +220,22 @@
                 // Log the file details before upload
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
 
-                // Call the function to send the file and data to the webhook
-                sendFileToWebhook(file);
+                // Step 1: Create a new video record and get the record ID
+                const videoData = await createVideoRecord(file);
+                if (!videoData || !videoData.record_id) { // Assuming `record_id` is returned from Make
+                    showMessage("Failed to create video record. Aborting upload.", false);
+                    return;
+                }
+
+                // Step 2: Get the presigned URL using the video record ID as the file name
+                const presignedUrl = await getPresignedUrl(videoData.record_id, file.type);
+                if (!presignedUrl) {
+                    showMessage("Failed to get presigned URL. Aborting upload.", false);
+                    return;
+                }
+
+                // Step 3: Upload the file to S3 using the presigned URL
+                await uploadFileToS3(file, presignedUrl);
             };
         });
     </script>
