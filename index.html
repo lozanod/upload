@@ -106,6 +106,7 @@
                 // Reset the status message when a new file is selected
                 statusMessage.textContent = '';
                 statusMessage.style.display = 'none';
+                statusMessage.className = ''; // Clear the class name to remove any styling from previous statuses
 
                 if (file) {
                     fileNameDisplay.textContent = `Selected file: ${file.name}`;
