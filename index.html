@@ -92,6 +92,21 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
+            // Ensure the iOS app is passing the data correctly
+            const urlParams = new URLSearchParams(window.location.search);
+            const huntId = urlParams.get('hunt_id');
+            const userId = urlParams.get('user_id');
+
+            console.log("Received huntId:", huntId);
+            console.log("Received userId:", userId);
+
+            // If these parameters are missing, display an error
+            if (!huntId || !userId) {
+                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
+                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
+                return;
+            }
+
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
             const statusMessage = document.getElementById('statusMessage');
@@ -102,6 +117,11 @@
                 console.error("One or more DOM elements could not be found.");
                 return;
             }
+
+            // Prevent the default button behavior (if needed)
+            uploadButton.addEventListener('click', function (event) {
+                event.preventDefault();  // Prevents default form behavior
+            });
 
             function showMessage(message, isSuccess) {
                 console.log(`Status message: ${message}`);
@@ -130,7 +150,7 @@
             // Event listener for the upload button
             uploadButton.addEventListener('click', function () {
                 console.log("Upload button clicked...");
-                
+
                 const file = fileInput.files[0];
                 if (!file) {
                     alert("Please select a file first.");
