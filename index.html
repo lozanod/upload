@@ -102,6 +102,11 @@
 
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
+
+                // Reset the status message when a new file is selected
+                statusMessage.textContent = '';
+                statusMessage.style.display = 'none';
+
                 if (file) {
                     fileNameDisplay.textContent = `Selected file: ${file.name}`;
                 } else {
