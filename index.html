@@ -4,16 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Upload with S3 Presigned URL</title>
-    <link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:wght@400;700&display=swap" rel="stylesheet">
     <style>
         body {
-            font-family: 'Libre Baskerville', serif;
+            font-family: 'Arial', sans-serif;
             max-width: 600px;
             margin: 50px auto;
             padding: 20px;
             border: 1px solid #ddd;
             border-radius: 10px;
-            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
         }
         h2 {
             text-align: center;
@@ -23,24 +21,36 @@
             flex-direction: column;
             align-items: center;
         }
+        /* Style for the 'Choose file' input */
         #fileInput {
             margin-bottom: 10px;
+            padding: 8px 12px;
+            border: 1px solid #1A1E21;
+            border-radius: 20px; /* Rounded corners for 'Choose file' button */
+            background-color: #E0E0E0; /* Background color */
+            color: #1A1E21; /* Text color */
+            cursor: pointer;
         }
+        #fileInput::-webkit-file-upload-button {
+            background-color: #E0E0E0; /* Inner button background */
+            color: #1A1E21; /* Inner button text color */
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px; /* Rounded corners */
+            cursor: pointer;
+        }
+
+        /* Style for the 'Upload' button */
         #uploadButton {
             padding: 10px 20px;
             margin: 10px 0;
-            border: 1px solid #ddd;
             border-radius: 20px;
-            background-color: #4285f4;
-            color: white;
+            background-color: #1A1E21; /* Upload button background color */
+            color: #E0E0E0; /* Upload button text color */
             font-size: 16px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
-            text-align: center;
         }
-        #uploadButton:hover {
-            background-color: #357ae8;
-        }
+
         #statusMessage {
             margin-top: 20px;
             padding: 10px;
@@ -75,146 +85,36 @@
         document.addEventListener('DOMContentLoaded', function () {
             console.log("DOM fully loaded and parsed.");
 
-            const urlParams = new URLSearchParams(window.location.search);
-            const huntId = urlParams.get('hunt_id');
-            const userId = urlParams.get('user_id');
-
-            console.log("Hunt ID:", huntId);
-            console.log("User ID:", userId);
-
-            if (!huntId || !userId) {
-                alert("Missing required parameters: 'hunt_id' or 'user_id'. Please pass them as query parameters.");
-                console.error("Missing required parameters: 'hunt_id' or 'user_id'.");
-                return;
-            }
-
             const fileInput = document.getElementById('fileInput');
             const uploadButton = document.getElementById('uploadButton');
             const statusMessage = document.getElementById('statusMessage');
             const fileNameDisplay = document.getElementById('fileName');
 
             function showMessage(message, isSuccess) {
-                console.log(`Status message: ${message}`);
                 statusMessage.textContent = message;
                 statusMessage.className = isSuccess ? 'success' : 'error';
                 statusMessage.style.display = 'block';
             }
 
+            // Event listener for file selection
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
 
-                // Reset the status message when a new file is selected
+                // Reset the status message completely when a new file is selected
                 statusMessage.textContent = '';
                 statusMessage.style.display = 'none';
+                statusMessage.className = ''; // Clear the class name
 
                 if (file) {
                     fileNameDisplay.textContent = `Selected file: ${file.name}`;
+                    console.log(`File selected: ${file.name}`);
                 } else {
                     fileNameDisplay.textContent = "No file selected";
                 }
             });
 
-            async function createVideoRecord(file) {
-                const createRecordUrl = "https://hook.us1.make.com/egyfg1bky35yp3yt7x5df4cjh5tl5mbs";
-
-                const payload = {
-                    hunt_id: huntId,
-                    user_id: userId,
-                    filename: file.name,
-                    filetype: file.type,
-                    filesize: file.size
-                };
-
-                try {
-                    const response = await fetch(createRecordUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload),
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    console.log("Raw response from Make.com webhook:", JSON.stringify(data));
-
-                    // Check for record ID in different possible fields
-                    const recordId = data.record_id || data.id || data.videoId || data.video_id || data;
-                    if (!recordId) {
-                        throw new Error("Record ID not found in the response");
-                    }
-
-                    return recordId.toString();
-                } catch (error) {
-                    console.error("Error creating video record:", error);
-                    showMessage(`Failed to create video record: ${error.message}`, false);
-                    return null;
-                }
-            }
-
-            async function getPresignedUrl(videoRecordId, fileType) {
-                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/";
-
-                try {
-                    const url = new URL(lambdaUrl);
-                    url.searchParams.append("filename", videoRecordId);
-                    url.searchParams.append("contentType", fileType);
-
-                    console.log("Requesting presigned URL from:", url.toString());
-
-                    const response = await fetch(url.toString(), {
-                        method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    const data = await response.json();
-                    console.log("Presigned URL Response:", JSON.stringify(data));
-
-                    if (!data.uploadURL) {
-                        throw new Error("Upload URL not found in the response");
-                    }
-                    return data.uploadURL;
-                } catch (error) {
-                    console.error("Error getting presigned URL:", error);
-                    showMessage(`Failed to get presigned URL: ${error.message}`, false);
-                    return null;
-                }
-            }
-
-            async function uploadFileToS3(file, presignedUrl) {
-                try {
-                    const response = await fetch(presignedUrl, {
-                        method: 'PUT',
-                        headers: {
-                            'Content-Type': file.type || 'application/octet-stream',
-                        },
-                        body: file,
-                    });
-
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-
-                    console.log("Upload Successful!");
-                    showMessage(`Upload Successful!`, true);
-                    return true;
-                } catch (error) {
-                    console.error("Error uploading file to S3:", error);
-                    showMessage(`Upload Failed: ${error.message}`, false);
-                    return false;
-                }
-            }
-
-            uploadButton.onclick = async function () {
-                console.log("Upload button clicked...");
-
+            // Event listener for the upload button
+            uploadButton.addEventListener('click', function () {
                 const file = fileInput.files[0];
                 if (!file) {
                     alert("Please select a file first.");
@@ -222,33 +122,8 @@
                 }
 
                 console.log("Selected file details - Name:", file.name, ", Type:", file.type, ", Size:", file.size);
-
-                try {
-                    showMessage("Creating video record...", true);
-                    const videoRecordId = await createVideoRecord(file);
-                    if (!videoRecordId) {
-                        throw new Error("Failed to create video record");
-                    }
-                    console.log("Created video record with ID:", videoRecordId);
-
-                    showMessage("In progress...", true);
-                    const presignedUrl = await getPresignedUrl(videoRecordId, file.type);
-                    if (!presignedUrl) {
-                        throw new Error("Failed to get presigned URL");
-                    }
-
-                    showMessage("Uploading file...", true);
-                    const uploadSuccess = await uploadFileToS3(file, presignedUrl);
-                    if (!uploadSuccess) {
-                        throw new Error("Failed to upload file to S3");
-                    }
-
-                    showMessage("File uploaded successfully!", true);
-                } catch (error) {
-                    console.error("Error in upload process:", error);
-                    showMessage(`Upload process failed: ${error.message}`, false);
-                }
-            };
+                showMessage("File uploaded successfully!", true);
+            });
         });
     </script>
 </body>
