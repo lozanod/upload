@@ -103,17 +103,9 @@
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
 
-                // Forcefully hide the status message
+                // Reset the status message when a new file is selected
                 statusMessage.textContent = '';
                 statusMessage.style.display = 'none';
-                statusMessage.className = ''; // Clear the class name
-
-                // Ensure the DOM update happens immediately
-                requestAnimationFrame(() => {
-                    statusMessage.textContent = '';
-                    statusMessage.style.display = 'none';
-                    statusMessage.className = '';
-                });
 
                 if (file) {
                     fileNameDisplay.textContent = `Selected file: ${file.name}`;
