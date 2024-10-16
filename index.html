@@ -29,13 +29,13 @@
             padding: 8px 12px;
             border: 1px solid #1A1E21;
             border-radius: 5px;
-            background-color: #E0E0E0; /* Background color */
-            color: #1A1E21; /* Text color */
+            background-color: #E0E0E0;
+            color: #1A1E21;
             cursor: pointer;
         }
         #fileInput::-webkit-file-upload-button {
-            background-color: #E0E0E0; /* Inner button background */
-            color: #1A1E21; /* Inner button text color */
+            background-color: #E0E0E0;
+            color: #1A1E21;
             border: none;
             padding: 8px 12px;
             border-radius: 5px;
@@ -48,14 +48,14 @@
             margin: 10px 0;
             border: 1px solid #ddd;
             border-radius: 20px;
-            background-color: #1A1E21; /* Upload button background color */
-            color: #E0E0E0; /* Upload button text color */
+            background-color: #1A1E21;
+            color: #E0E0E0;
             font-size: 16px;
             cursor: pointer;
             transition: background-color 0.3s ease;
         }
         #uploadButton:hover {
-            background-color: #333639; /* A slightly lighter shade on hover */
+            background-color: #333639;
         }
 
         #statusMessage {
@@ -207,6 +207,7 @@
 
             async function uploadFileToS3(file, presignedUrl) {
                 try {
+                    // Upload the file to S3 using the presigned URL
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
