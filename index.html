@@ -120,7 +120,6 @@
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
 
-                // Reset the status message when a new file is selected
                 statusMessage.textContent = '';
                 statusMessage.style.display = 'none';
 
@@ -156,7 +155,6 @@
                     const data = await response.json();
                     console.log("Raw response from Make.com webhook:", JSON.stringify(data));
 
-                    // Check for record ID in different possible fields
                     const recordId = data.record_id || data.id || data.videoId || data.video_id || data;
                     if (!recordId) {
                         throw new Error("Record ID not found in the response");
@@ -170,17 +168,13 @@
                 }
             }
 
-            async function getPresignedUrl(videoRecordId, fileType) {
-                const lambdaUrl = "https://tcnkjawivuldkhcbuokqv77bim0gxpml.lambda-url.us-east-1.on.aws/";
+            async function getPresignedUrl(videoRecordId) {
+                const apiGatewayUrl = `https://423ujnrtv2.execute-api.us-east-1.amazonaws.com/generate-url?videoId=${videoRecordId}&filename=${videoRecordId}`;
 
                 try {
-                    const url = new URL(lambdaUrl);
-                    url.searchParams.append("filename", videoRecordId);
-                    url.searchParams.append("contentType", fileType);
+                    console.log("Requesting presigned URL from:", apiGatewayUrl);
 
-                    console.log("Requesting presigned URL from:", url.toString());
-
-                    const response = await fetch(url.toString(), {
+                    const response = await fetch(apiGatewayUrl, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json'
@@ -194,10 +188,11 @@
                     const data = await response.json();
                     console.log("Presigned URL Response:", JSON.stringify(data));
 
-                    if (!data.uploadURL) {
-                        throw new Error("Upload URL not found in the response");
+                    if (!data.results || !data.results[0].videoURL) {
+                        throw new Error("Failed to get presigned URL");
                     }
-                    return data.uploadURL;
+
+                    return data.results[0].videoURL;
                 } catch (error) {
                     console.error("Error getting presigned URL:", error);
                     showMessage(`Failed to get presigned URL: ${error.message}`, false);
@@ -207,7 +202,6 @@
 
             async function uploadFileToS3(file, presignedUrl) {
                 try {
-                    // Upload the file to S3 using the presigned URL
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
@@ -230,6 +224,33 @@
                 }
             }
 
+            async function sendPresignedUrlToWebhook(videoRecordId, presignedUrl) {
+                const webhookUrl = "https://hook.us1.make.com/9jpkcwrtx9eue1bseolqb747zk5bnkto";
+
+                const payload = {
+                    videoId: videoRecordId,
+                    presignedUrl: presignedUrl
+                };
+
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+
+                    console.log("Presigned URL sent to Make.com webhook successfully");
+                    showMessage("Presigned URL sent to Make.com webhook successfully", true);
+                } catch (error) {
+                    console.error("Error sending presigned URL to Make.com webhook:", error);
+                    showMessage(`Failed to send presigned URL: ${error.message}`, false);
+                }
+            }
+
             uploadButton.onclick = async function () {
                 console.log("Upload button clicked...");
 
@@ -249,8 +270,8 @@
                     }
                     console.log("Created video record with ID:", videoRecordId);
 
-                    showMessage("In progress...", true);
-                    const presignedUrl = await getPresignedUrl(videoRecordId, file.type);
+                    showMessage("Getting presigned URL...", true);
+                    const presignedUrl = await getPresignedUrl(videoRecordId);
                     if (!presignedUrl) {
                         throw new Error("Failed to get presigned URL");
                     }
@@ -261,7 +282,11 @@
                         throw new Error("Failed to upload file to S3");
                     }
 
-                    showMessage("File uploaded successfully!", true);
+                    showMessage("File uploaded successfully! Getting view URL...", true);
+                    const viewUrl = await getPresignedUrl(videoRecordId);
+                    if (viewUrl) {
+                        await sendPresignedUrlToWebhook(videoRecordId, viewUrl);
+                    }
                 } catch (error) {
                     console.error("Error in upload process:", error);
                     showMessage(`Upload process failed: ${error.message}`, false);
