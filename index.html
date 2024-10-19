@@ -117,10 +117,32 @@
                 statusMessage.style.display = 'block';
             }
 
+            async function notifyFailure(videoRecordId) {
+                const webhookUrl = "https://hook.us1.make.com/cvpo0ao4h5ar0y8tx9extpsfssrpixdc";
+                const payload = {
+                    video_id: videoRecordId
+                };
+
+                try {
+                    const response = await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload),
+                    });
+
+                    if (!response.ok) {
+                        console.error(`Failed to notify failure: HTTP status ${response.status}`);
+                    } else {
+                        console.log("Failure notification sent successfully.");
+                    }
+                } catch (error) {
+                    console.error("Error notifying failure:", error);
+                }
+            }
+
             fileInput.addEventListener('change', function () {
                 const file = fileInput.files[0];
 
-                // Reset the status message when a new file is selected
                 statusMessage.textContent = '';
                 statusMessage.style.display = 'none';
 
@@ -156,7 +178,6 @@
                     const data = await response.json();
                     console.log("Raw response from Make.com webhook:", JSON.stringify(data));
 
-                    // Check for record ID in different possible fields
                     const recordId = data.record_id || data.id || data.videoId || data.video_id || data;
                     if (!recordId) {
                         throw new Error("Record ID not found in the response");
@@ -182,9 +203,7 @@
 
                     const response = await fetch(url.toString(), {
                         method: 'GET',
-                        headers: {
-                            'Content-Type': 'application/json'
-                        }
+                        headers: { 'Content-Type': 'application/json' }
                     });
 
                     if (!response.ok) {
@@ -205,9 +224,8 @@
                 }
             }
 
-            async function uploadFileToS3(file, presignedUrl) {
+            async function uploadFileToS3(file, presignedUrl, videoRecordId) {
                 try {
-                    // Upload the file to S3 using the presigned URL
                     const response = await fetch(presignedUrl, {
                         method: 'PUT',
                         headers: {
@@ -226,6 +244,7 @@
                 } catch (error) {
                     console.error("Error uploading file to S3:", error);
                     showMessage(`Upload Failed: ${error.message}`, false);
+                    await notifyFailure(videoRecordId);
                     return false;
                 }
             }
@@ -256,7 +275,7 @@
                     }
 
                     showMessage("Uploading file...", true);
-                    const uploadSuccess = await uploadFileToS3(file, presignedUrl);
+                    const uploadSuccess = await uploadFileToS3(file, presignedUrl, videoRecordId);
                     if (!uploadSuccess) {
                         throw new Error("Failed to upload file to S3");
                     }
