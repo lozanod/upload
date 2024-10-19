@@ -119,9 +119,7 @@
 
             async function notifyFailure(videoRecordId) {
                 const webhookUrl = "https://hook.us1.make.com/cvpo0ao4h5ar0y8tx9extpsfssrpixdc";
-                const payload = {
-                    video_id: videoRecordId
-                };
+                const payload = { video_id: videoRecordId };
 
                 try {
                     const response = await fetch(webhookUrl, {
@@ -277,10 +275,11 @@
                     showMessage("Uploading file...", true);
                     const uploadSuccess = await uploadFileToS3(file, presignedUrl, videoRecordId);
                     if (!uploadSuccess) {
-                        throw new Error("Failed to upload file to S3");
+                        console.error("Upload failed, notifying failure.");
+                        await notifyFailure(videoRecordId);
+                    } else {
+                        showMessage("File uploaded successfully!", true);
                     }
-
-                    showMessage("File uploaded successfully!", true);
                 } catch (error) {
                     console.error("Error in upload process:", error);
                     showMessage(`Upload process failed: ${error.message}`, false);
